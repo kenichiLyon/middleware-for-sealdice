@@ -1,0 +1,5 @@
+{
+  "listen_http": ":8082",
+  "storage_dir": "uploads",
+  "public_base_url": "http://127.0.0.1:8082"
+}

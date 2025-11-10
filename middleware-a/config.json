@@ -1,0 +1,7 @@
+{
+  "listen_http": ":8081",
+  "listen_ws_path": "/ws",
+  "upstream_ws_url": "ws://127.0.0.1:6700/ws",
+  "upstream_access_token": "",
+  "upload_endpoint": "http://127.0.0.1:8082/upload"
+}
