@@ -1,0 +1,33 @@
+services:
+  sealdice:
+    image: ghcr.io/sealdice/sealdice:edge
+    container_name: sealdice
+    ports:
+      - "3211:3211"
+    volumes:
+      - "./docker-data/sealdice/data:/data"
+      - "./docker-data/sealdice/backups:/backups"
+    networks:
+      - sealdice_network
+    depends_on:
+      - middleware-c
+
+  middleware-c:
+    build:
+      context: ./middleware-c
+      dockerfile: Dockerfile
+    container_name: middleware-c
+    volumes:
+      - "./docker-data/middleware-c/config.json:/app/config.json:ro"
+      - "./docker-data/sealdice/data:/data"
+      - "./docker-data/sealdice/backups:/backups"
+    networks:
+      - sealdice_network
+
+# docker-compose启动之后，请到3211端口：
+# 在海豹配置添加客户端： ws://middleware-c:8081/ws，账号填写正确账号即可
+# 
+
+networks:
+  sealdice_network:
+    driver: bridge
