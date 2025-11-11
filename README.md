@@ -9,14 +9,14 @@
 
 ## 组件说明
 
-- `middleware-a`：需位于 `sealdice-core` 机器，负责充当 WebSocket 代理。
+- `middleware-a`：需位于 `sealdice-core` 机器（与 sealdice-core 程序同机），负责充当 WebSocket 代理。
   - 拦截 OneBot 动作 `upload_private_file` / `upload_group_file`。
   - 将本地文件上传至远端 `middleware-b` 并获取 URL 或本机绝对路径。
   - 对 `upload_*_file`：优先改写其 `file` 为 b 返回的本机绝对路径（go-cqhttp 端可直接读取）；若不可用则降级为 `send_*_msg` + `[CQ:file,file=<url>,name=<name>]`。
   - 对 `send_*_msg` 中的 `[CQ:image]`/`[CQ:record]`：检测 `file` 为本地路径或 `base64://` 时，上传到 b 并改写为网络 URL（`file=<http(s)://...>`），实现跨机发送。
   - 其余事件与动作透明转发。
 
-- `middleware-b`：需位于协议端机器（与 go-cqhttp 同机），负责提供文件上传与静态文件访问，需要 `middleware-a` 所在的机器可访问，否则可能无法正常工作。
+- `middleware-b`：需位于协议端机器（与协议实现端程序同机），负责提供文件上传与静态文件访问，需要 `middleware-a` 所在的机器可访问，否则可能无法正常工作。
   - 接收 `multipart/form-data` 上传，存储到本地目录。
   - 返回可公开访问的 URL，供 go-cqhttp 取用。
 
