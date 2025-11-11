@@ -1,5 +1,10 @@
 # Middleware for SealDice OneBot 文件跨机发送
 
+### 鸣谢：Original Idea: [@Szzrain](https://github.com/szzrain)
+
+Inspired by:[@PaineNate](https://github.com/paiennate)
+
+
 用于在 `sealdice-core` 与 OneBot 协议实现端位于不同机器时，实现文件发送功能的中间件，无需改动两端代码。
 
 ## 组件说明
