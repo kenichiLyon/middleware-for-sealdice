@@ -1,18 +1,13 @@
-name: Build middleware-b
+name: Release middleware-b
 
 on:
   push:
-    paths:
-      - 'middleware-b/**'
-      - '.github/workflows/middleware-b-build.yml'
-  pull_request:
-    paths:
-      - 'middleware-b/**'
-      - '.github/workflows/middleware-b-build.yml'
+    tags:
+      - 'middleware-b-v*'
   workflow_dispatch:
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -29,9 +24,9 @@ jobs:
           go env -w GOPROXY=https://goproxy.cn,direct
           go env -w GOTOOLCHAIN=local
 
-      - name: Download deps
+      - name: Prepare dist
         working-directory: middleware-b
-        run: go mod download
+        run: mkdir -p dist
 
       - name: Build Windows amd64
         working-directory: middleware-b
@@ -45,18 +40,19 @@ jobs:
         working-directory: middleware-b
         run: GOOS=darwin GOARCH=amd64 go build -v -o dist/middleware-b-darwin-amd64
 
-      - name: Zip artifacts with config.json
+      - name: Zip artifacts
         working-directory: middleware-b/dist
         run: |
           zip -j middleware-b-windows-amd64.zip middleware-b-windows-amd64.exe ../config.json
           zip -j middleware-b-linux-amd64.zip middleware-b-linux-amd64 ../config.json
           zip -j middleware-b-darwin-amd64.zip middleware-b-darwin-amd64 ../config.json
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - name: Create GitHub Release and Upload Assets
+        uses: softprops/action-gh-release@v1
         with:
-          name: middleware-b-dist
-          path: |
+          files: |
             middleware-b/dist/middleware-b-windows-amd64.zip
             middleware-b/dist/middleware-b-linux-amd64.zip
             middleware-b/dist/middleware-b-darwin-amd64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

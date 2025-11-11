@@ -1,9 +1,9 @@
 {
   "listen_http": ":8081",
   "listen_ws_path": "/ws",
-  "upstream_ws_url": "ws://47.107.75.137:6700",
-  "upstream_access_token": "kenichi-upstream",
+  "upstream_ws_url": "ws://127.0.0.1:6700",
+  "upstream_access_token": "",
   "upstream_use_query_token": true,
   "server_access_token": "",
-  "upload_endpoint": "http://47.107.75.137:8082/upload"
+  "upload_endpoint": "http://127.0.0.1:8082/upload"
 }
