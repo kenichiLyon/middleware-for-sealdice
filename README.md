@@ -13,7 +13,7 @@
 - `middleware-a`：需位于 `sealdice-core` 机器（与 sealdice-core 程序同机），负责充当 WebSocket 代理。
   - 拦截 OneBot 动作 `upload_private_file` / `upload_group_file`。
   - 将本地文件上传至远端 `middleware-b` 并获取 URL 或本机绝对路径。
-  - 对 `upload_*_file`：优先改写其 `file` 为 b 返回的本机绝对路径（go-cqhttp 端可直接读取）；若不可用则降级为 `send_*_msg` + `[CQ:file,file=<url>,name=<name>]`。
+  - 对 `upload_*_file`：优先改写其 `file` 为 b 返回的本机绝对路径（onebot协议实现端可直接读取）；若不可用则降级为 `send_*_msg` + `[CQ:file,file=<url>,name=<name>]`。
   - 对 `send_*_msg` 中的 `[CQ:image]`/`[CQ:record]`：检测 `file` 为本地路径或 `base64://` 时，上传到 b 并改写为网络 URL（`file=<http(s)://...>`），实现跨机发送。
   - 其余事件与动作透明转发。
 
@@ -44,7 +44,8 @@ go build   # 若依赖下载失败，请设置 golang 的国内镜像站，这�
 
 ## 配置与启动
 
-### middleware-b（与协议端同机）
+### `a+b`方案
+#### middleware-b（与协议端同机）
 
 编辑 `middleware-b/config.json`：
 
@@ -60,7 +61,7 @@ go build   # 若依赖下载失败，请设置 golang 的国内镜像站，这�
 
 亦可以配置好 `config.json` 文件后双击启动
 
-### middleware-a（与 sealdice-core 程序同机）
+#### middleware-a（与 sealdice-core 程序同机）
 
 编辑 `middleware-a/config.json`：
 
@@ -78,7 +79,7 @@ go build   # 若依赖下载失败，请设置 golang 的国内镜像站，这�
 .\middleware-a -config config.json
 ```
 
-亦可以配置好 `config.json` 文件后双击启动
+windows用户 亦可以配置好 `config.json` 文件后双击启动
 
 在 `sealdice-core` 的 账号设置界面中，选择 `Onebot V11 正向WS`
 
