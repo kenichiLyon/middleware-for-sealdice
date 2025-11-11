@@ -52,11 +52,20 @@ jobs:
           zip -j middleware-b-linux-amd64.zip middleware-b-linux-amd64 ../config.json
           zip -j middleware-b-darwin-amd64.zip middleware-b-darwin-amd64 ../config.json
 
-      - name: Upload artifacts
+      - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: middleware-b-dist
-          path: |
-            middleware-b/dist/middleware-b-windows-amd64.zip
-            middleware-b/dist/middleware-b-linux-amd64.zip
-            middleware-b/dist/middleware-b-darwin-amd64.zip
+          name: middleware-b-windows-amd64.zip
+          path: middleware-b/dist/middleware-b-windows-amd64.zip
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: middleware-b-linux-amd64.zip
+          path: middleware-b/dist/middleware-b-linux-amd64.zip
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: middleware-b-darwin-amd64.zip
+          path: middleware-b/dist/middleware-b-darwin-amd64.zip
