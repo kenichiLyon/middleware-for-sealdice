@@ -17,6 +17,8 @@
 
 ## 构建
 
+本项目使用 Golang 1.25.3 进行编写，建议以该版本进行代码编写与编译。
+
 ```powershell
 cd middleware-b
 go build
