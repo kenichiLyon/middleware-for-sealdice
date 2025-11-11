@@ -24,7 +24,7 @@ cd middleware-b
 go build
 
 cd ../middleware-a
-go build   # 若依赖下载失败，请设置 GOPROXY="https://goproxy.cn,direct"
+go build   # 若依赖下载失败，请设置 golang 的国内镜像站，这里我使用的是 goproxy.cn
 ```
 
 ## 配置与启动
