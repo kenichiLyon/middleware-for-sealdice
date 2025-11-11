@@ -9,6 +9,7 @@
 
 ## 组件说明
 
+### `middleware-a + middleware-b` 方案
 - `middleware-a`：需位于 `sealdice-core` 机器（与 sealdice-core 程序同机），负责充当 WebSocket 代理。
   - 拦截 OneBot 动作 `upload_private_file` / `upload_group_file`。
   - 将本地文件上传至远端 `middleware-b` 并获取 URL 或本机绝对路径。
