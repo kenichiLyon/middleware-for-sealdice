@@ -6,11 +6,11 @@ outline: deep
 
 ## Linux 环境下启动失败了怎么办？
 
-> 首先自查是否按照[安装与部署](manual\docs\guide\install%26deploy.md)的步骤进行了操作，其次，自查是否给予了足够的权限（如执行权限），使用 `chmod +x <middleware工作目录>`为 middleware 组件添加执行权限。
+> 首先自查是否按照[安装与部署](/guide/install&deploy)的步骤进行了操作，其次，自查是否给予了足够的权限（如执行权限），使用 `chmod +x <middleware工作目录>`为 middleware 组件添加执行权限。
 
 ## Windows 环境下启动失败了怎么办？
 
-> 首先自查是否按照[安装与部署](manual\docs\guide\install%26deploy.md)的步骤进行了操作，其次，自查是否存在 WindowsDefender 等安全软件，若存在，请将 middleware 组件所在目录添加到安全软件的白名单中。
+> 首先自查是否按照[安装与部署](/guide/install&deploy)的步骤进行了操作，其次，自查是否存在 WindowsDefender 等安全软件，若存在，请将 middleware 组件所在目录添加到安全软件的白名单中。
 
 ## 未来会增加其他协议的支持吗？
 
