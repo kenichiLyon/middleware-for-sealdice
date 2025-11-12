@@ -6,8 +6,8 @@ on:
       - main
       - master
     paths:
-      - 'middleware-c/**'
-      - '.github/workflows/middleware-c-build-docker.yml'
+      - "middleware-c/**"
+      - ".github/workflows/middleware-c-build-docker.yml"
   workflow_dispatch: {}
 
 permissions:
