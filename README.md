@@ -20,3 +20,5 @@
 ## 手册
 
 本项目使用 monorepo 模式，手册位于 `manual` 目录下。
+
+在线手册：https://kenichiLyon.github.io/middleware-for-sealdice/

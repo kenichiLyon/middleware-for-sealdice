@@ -1,0 +1,45 @@
+name: Manual Docs Lint
+
+on:
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'manual/**'
+      - '.github/workflows/manual-docs-lint.yml'
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'manual/**'
+      - '.github/workflows/manual-docs-lint.yml'
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - name: Install deps
+        working-directory: manual
+        run: pnpm install --frozen-lockfile
+
+      - name: Markdown Lint (markdownlint-cli)
+        working-directory: manual
+        run: pnpm dlx markdownlint-cli "docs/**/*.md" "!docs/.vitepress/cache/**"
+
+      - name: Vue/TS Type Check (vue-tsc)
+        working-directory: manual
+        run: pnpm dlx vue-tsc -p tsconfig.json --noEmit
+

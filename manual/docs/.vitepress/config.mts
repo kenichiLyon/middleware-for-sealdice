@@ -7,6 +7,7 @@ export default defineConfig({
   description: 'Sealdice 中间件手册',
   lastUpdated: true,
   cleanUrls: true,
+  base: '/middleware-for-sealdice/',
   markdown: {
     config: (md) => {
       md.core.ruler.before('normalize', 'tabs-compat', (state) => {
