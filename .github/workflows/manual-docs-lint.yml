@@ -20,36 +20,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Markdown Lint (markdownlint-cli2)
+        uses: DavidAnson/markdownlint-cli2-action@v16
+        with:
+          globs: "manual/docs/**/*.md"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+          run_install: false
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: 'pnpm'
           cache-dependency-path: manual/pnpm-lock.yaml
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Prepare PNPM
-        run: corepack prepare pnpm@10.0.0 --activate
-
-      - name: Install PNPM (fallback)
-        run: |
-          npm i -g pnpm@10
-          pnpm -v
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 10
 
       - name: Install deps
         working-directory: manual
         run: pnpm install --frozen-lockfile
-
-      - name: Markdown Lint (markdownlint-cli)
-        working-directory: manual
-        run: pnpm dlx markdownlint-cli "docs/**/*.md" "!docs/.vitepress/cache/**"
 
       - name: Vue/TS Type Check (vue-tsc)
         working-directory: manual
