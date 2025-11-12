@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "jsx": "preserve",
+    "strict": true,
+    "baseUrl": ".",
+    "types": ["vitepress/client", "vue"],
+    "paths": {
+      "@theme/*": ["docs/.vitepress/theme/*"]
+    }
+  },
+  "include": [
+    "docs/.vitepress/**/*",
+    "docs/**/*.md",
+    "docs/**/*.vue"
+  ]
+}
+
