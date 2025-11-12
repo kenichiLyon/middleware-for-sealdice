@@ -22,6 +22,8 @@
   - 接收 `multipart/form-data` 上传，存储到本地目录。
   - 返回可公开访问的 URL，供协议实现端取用。
 
+### `middleware-c` 方案
+
 - `middleware-c`：用于连接已经配置好的`onebot v11`跨机器/跨容器/跨网段的协议端（Websocket 服务端模式），适用于跨机部署和快速 docker-compose 部署海豹，并链接已有的`onebot v11`协议端。该方案只需要启动`docker-compose`即可，无需双端部署。全程使用 base64 进行传输图片等内容。实现参考了`middleware-a`，原理是：`sealdice->middleware-c->onebot11(ws服务端)`，在传输过程中解析绝对目录的文件转换为 base64。
 
 简而言之，本项目本质上是将 **sealdice-core 程序的可读取目录** 内的图片/视频等外置资源转换到了 **协议实现端的可读取目录**，规避了跨机部署时协议实现端无法访问到海豹资源 URI 导致消息发送失败的问题
