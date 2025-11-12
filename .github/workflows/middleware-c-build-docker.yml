@@ -1,0 +1,115 @@
+name: Build and Publish Docker Images to GHCR
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - "v*.*.*"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  OWNER: ${{ github.repository_owner }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: middleware-c
+            context: ./middleware-c/middleware-c
+            dockerfile: ./middleware-c/middleware-c/Dockerfile
+            binary: middleware-c
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare Dockerfile if missing
+        run: |
+          set -eux
+
+          NAME="${{ matrix.name }}"
+          CONTEXT="${{ matrix.context }}"
+          DOCKERFILE="${{ matrix.dockerfile }}"
+          BINARY="${{ matrix.binary }}"
+
+          if [ -f "$DOCKERFILE" ]; then
+            echo "Dockerfile for $NAME already exists at $DOCKERFILE"
+            exit 0
+          fi
+
+          echo "No Dockerfile found for $NAME, generating a minimal multi-stage Dockerfile at $DOCKERFILE"
+
+          mkdir -p "$(dirname "$DOCKERFILE")"
+
+          cat >"$DOCKERFILE" <<EOF
+          FROM golang:1.21-alpine AS builder
+
+          WORKDIR /app
+          RUN apk add --no-cache git ca-certificates && update-ca-certificates
+
+          COPY go.mod go.sum ./
+          RUN go mod download
+
+          COPY . .
+          RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/${BINARY} main.go
+
+          FROM alpine:3.20
+          WORKDIR /app
+          RUN apk add --no-cache ca-certificates && update-ca-certificates
+
+          COPY --from=builder /app/${BINARY} /app/${BINARY}
+          COPY config.json.example /app/config.json || true
+
+          EXPOSE 8081
+          ENTRYPOINT ["/app/${BINARY}"]
+          CMD ["-config", "/app/config.json"]
+          EOF
+
+      - name: Extract tags
+        id: meta
+        run: |
+          # 仓库所有者统一转为小写，满足 GHCR / Docker 要求
+          OWNER_LOWER="$(echo "${{ env.OWNER }}" | tr '[:upper:]' '[:lower:]')"
+          IMAGE="${{ env.REGISTRY }}/${OWNER_LOWER}/${{ matrix.name }}"
+
+          TAGS="${IMAGE}:latest,${IMAGE}:${GITHUB_SHA}"
+
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION_TAG="${GITHUB_REF#refs/tags/}"
+            TAGS="${TAGS},${IMAGE}:${VERSION_TAG}"
+          fi
+
+          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}

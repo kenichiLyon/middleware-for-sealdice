@@ -22,6 +22,8 @@
   - 接收 `multipart/form-data` 上传，存储到本地目录。
   - 返回可公开访问的 URL，供协议实现端取用。
 
+- `middleware-c`：用于连接已经配置好的`onebot v11`跨机器/跨容器/跨网段的协议端（Websocket服务端模式），适用于跨机部署和快速docker compose部署海豹，并链接已有的`onebot v11`协议端。该方案只需要启动`docker-compose`即可，无需双端部署。全程使用base64进行传输图片等内容。实现参考了`middleware-a`，原理是：`sealdice->middleware-c->onebot11(ws服务端)`，在传输过程中解析绝对目录的文件转换为base64。
+
 简而言之，本项目本质上是将 **sealdice-core 程序的可读取目录** 内的图片/视频等外置资源转换到了 **协议实现端的可读取目录**，规避了跨机部署时协议实现端无法访问到海豹资源 URI 导致消息发送失败的问题
 
 ## 获取二进制文件
@@ -86,6 +88,47 @@ windows用户 亦可以配置好 `config.json` 文件后双击启动
 `ws://<a 组件所在机器的 IP >:8081/ws`
 
 如出现 `已连接` 且的确未显示异常，则证明连接成功
+
+### `c`方案
+#### middleware-c
+
+该方案可直接`docker-compose`启动`sealdice`，无需双端部署组件，并使用base64处理绝对路径的文件。也可以自行编译部署。
+
+原理是：`sealdice->middleware-c->onebot11(ws服务端)` , `middleware-c`将对海豹核心的绝对路径的文件编码为base64，然后发送到OneBot11协议端，进而实现多机/跨网段/跨容器进行正常工作。
+
+具体使用如下：
+
+```bash
+git clone https://github.com/kenichiLyon/middleware-for-sealdice
+cd middleware-c
+mkdir -pv docker-data/middleware-c
+cp middleware-c/config.json.example docker-data/middleware-c/config.json
+vim docker-data/middleware-c/config.json
+```
+
+修改`docker-data/middleware-c/config.json`
+
+```json
+{
+  "listen_http": ":8081", #无需修改，用于海豹进行连接
+  "listen_ws_path": "/ws", #无需修改，用于海豹进行连接
+  "upstream_ws_url": "ws://127.0.0.1:6700", #上游onebotv11 ws服务器地址
+  "upstream_access_token": "", #上游onebotv11 ws服务器验证秘钥
+  "upstream_use_query_token": true, #上游onebotv11 是否使用秘钥
+  "server_access_token": "",
+  "upload_endpoint": ""
+}
+```
+
+启动海豹：
+```bash
+docker compose up -d
+```
+
+打开本机3211端口（sealdice），在海豹配置添加客户端： ws://middleware-c:8081/ws，账号填写正确账号即可，验证秘钥可为空（与`server_access_token` 相同）
+
+享受你的海豹吧。
+
 
 ## 行为与兼容性（OneBot v11）
 

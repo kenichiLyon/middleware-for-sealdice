@@ -1,0 +1,77 @@
+name: Build middleware-c
+
+on:
+  push:
+    paths:
+      - 'middleware-c/**'
+      - '.github/workflows/middleware-c-build.yml'
+  pull_request:
+    paths:
+      - 'middleware-c/**'
+      - '.github/workflows/middleware-c-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.3'
+          cache: true
+
+      - name: Configure Go env
+        run: |
+          go env -w GOPROXY=https://goproxy.cn,direct
+          go env -w GOTOOLCHAIN=local
+
+      - name: Download deps
+        working-directory: middleware-c/middleware-c
+        run: go mod download
+
+      # 与 a/b 保持风格一致，同时覆盖常用多平台，作为 CI 构建验证
+      - name: Build Windows amd64
+        working-directory: middleware-c/middleware-c
+        run: GOOS=windows GOARCH=amd64 go build -v -o dist/middleware-c-windows-amd64.exe
+
+      - name: Build Linux amd64
+        working-directory: middleware-c/middleware-c
+        run: GOOS=linux GOARCH=amd64 go build -v -o dist/middleware-c-linux-amd64
+
+      - name: Build Linux arm64
+        working-directory: middleware-c/middleware-c
+        run: GOOS=linux GOARCH=arm64 go build -v -o dist/middleware-c-linux-arm64
+
+      - name: Build macOS amd64
+        working-directory: middleware-c/middleware-c
+        run: GOOS=darwin GOARCH=amd64 go build -v -o dist/middleware-c-darwin-amd64
+
+      - name: Build macOS arm64
+        working-directory: middleware-c/middleware-c
+        run: GOOS=darwin GOARCH=arm64 go build -v -o dist/middleware-c-darwin-arm64
+
+      - name: Zip artifacts with example config
+        working-directory: middleware-c/middleware-c/dist
+        run: |
+          cp ../config.json.example ./config.json.example || true
+          zip -j middleware-c-windows-amd64.zip middleware-c-windows-amd64.exe ./config.json.example || true
+          zip -j middleware-c-linux-amd64.zip middleware-c-linux-amd64 ./config.json.example || true
+          zip -j middleware-c-linux-arm64.zip middleware-c-linux-arm64 ./config.json.example || true
+          zip -j middleware-c-darwin-amd64.zip middleware-c-darwin-amd64 ./config.json.example || true
+          zip -j middleware-c-darwin-arm64.zip middleware-c-darwin-arm64 ./config.json.example || true
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: middleware-c-build-artifacts
+          path: |
+            middleware-c/middleware-c/dist/middleware-c-windows-amd64.zip
+            middleware-c/middleware-c/dist/middleware-c-linux-amd64.zip
+            middleware-c/middleware-c/dist/middleware-c-linux-arm64.zip
+            middleware-c/middleware-c/dist/middleware-c-darwin-amd64.zip
+            middleware-c/middleware-c/dist/middleware-c-darwin-arm64.zip
