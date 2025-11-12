@@ -11,8 +11,8 @@ hero:
       text: 快速开始
       link: /guide/quick-start
     - theme: alt
-      text: 配置说明
-      link: /guide/configuration
+      text: 安装部署
+      link: /guide/install&deploy
 
 features:
   - title: 跨机部署
