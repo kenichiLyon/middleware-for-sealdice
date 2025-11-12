@@ -125,13 +125,4 @@ docker compose up -d
 
 打开本机 3211 端口（sealdice），在海豹配置添加客户端： `ws://middleware-c:8081/ws`，账号填写正确账号即可，验证秘钥可为空（与`server_access_token` 相同）
 
-享受你的海豹吧。
-
-## 行为与兼容性（OneBot v11）
-
-- 代理会透明转发所有事件与动作，仅在检测到 `upload_private_file` / `upload_group_file` 时介入。
-- 对于 `file` 字段：
-  - `http(s)://...`：直接改写为 `[CQ:file,file=<url>]`，不经上传。
-  - `base64://...`：解码后上传至 `middleware-b`，返回 URL 并改写为 `[CQ:file,file=<url>,name=<name>]`。
-  - `file://` 或本地路径：读取本地文件上传至 `middleware-b`，返回 URL 并改写为 `[CQ:file,file=<url>,name=<name>]`。
-- 上游鉴权支持 `Authorization: Bearer` 或 `?access_token=` 两种形式。
+现在，你可以使用这个方案进行 docker 环境的跨机部署。

@@ -19,9 +19,7 @@ export default defineConfig({
         items: [
           { text: '简介', link: '/guide/overview' },
           { text: '快速开始', link: '/guide/quick-start' },
-          { text: '安装', link: '/guide/install' },
-          { text: '配置说明', link: '/guide/configuration' },
-          { text: '部署', link: '/guide/deployment' }
+          { text: '安装', link: '/guide/install&deploy' },
         ]
       },
       {
