@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - 'middleware-c-v*'
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -64,6 +63,8 @@ jobs:
           zip -j middleware-c-darwin-arm64.zip middleware-c-darwin-arm64 ./config.json.example || true
 
       - name: Create GitHub Release and Upload Assets
+        # 仅在 tag 上下文触发，本 action 才有合法的 release 目标
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
           files: |
