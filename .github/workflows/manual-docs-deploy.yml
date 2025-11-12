@@ -6,6 +6,11 @@ on:
     paths:
       - 'manual/**'
       - '.github/workflows/manual-docs-deploy.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'manual/**'
+      - '.github/workflows/manual-docs-deploy.yml'
   workflow_dispatch:
 
 permissions:
