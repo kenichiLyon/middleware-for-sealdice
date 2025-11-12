@@ -128,7 +128,7 @@ vim docker-data/middleware-c/config.json
 ./middleware-a
 ```
 
-启动失败，则按照[FAQ](/faq/faq)先进行排查，有任何故障请及时前往 issue 区进行反馈。
+启动失败，则按照`FAQ`先进行排查，有任何故障请及时前往 issue 区进行反馈。
 
 === Windows
 
@@ -136,7 +136,7 @@ vim docker-data/middleware-c/config.json
 
 - 如果`middleware-b`在 Windows 环境中，直接双击启动 `middleware-b.exe`即可
 
-启动失败，则按照[FAQ](/faq/faq)先进行排查，有任何故障请及时前往 issue 区进行反馈。
+启动失败，则按照`FAQ`先进行排查，有任何故障请及时前往 issue 区进行反馈。
 
 == c 方案
 
