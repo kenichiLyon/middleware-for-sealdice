@@ -15,7 +15,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  OWNER: kenichiLyon
+  OWNER: ${{ github.repository_owner }}
 
 jobs:
   build-and-push:
@@ -92,7 +92,9 @@ jobs:
       - name: Extract tags
         id: meta
         run: |
-          IMAGE="${{ env.REGISTRY }}/${{ env.OWNER }}/${{ matrix.name }}"
+          # 仓库所有者统一转为小写，满足 GHCR / Docker 要求
+          OWNER_LOWER="$(echo "${{ env.OWNER }}" | tr '[:upper:]' '[:lower:]')"
+          IMAGE="${{ env.REGISTRY }}/${OWNER_LOWER}/${{ matrix.name }}"
 
           TAGS="${IMAGE}:latest,${IMAGE}:${GITHUB_SHA}"
 
