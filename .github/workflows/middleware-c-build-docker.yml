@@ -5,8 +5,9 @@ on:
     branches:
       - main
       - master
-    tags:
-      - "v*.*.*"
+    paths:
+      - 'middleware-c/**'
+      - '.github/workflows/middleware-c-build-docker.yml'
   workflow_dispatch: {}
 
 permissions:
