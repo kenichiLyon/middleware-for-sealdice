@@ -1,24 +1,21 @@
-name: Release middleware-c
+name: Build middleware-c
 
 on:
   push:
-    tags:
-      - 'middleware-c-v*'
-
-permissions:
-  contents: write
+    paths:
+      - 'middleware-c/**'
+      - '.github/workflows/middleware-c-build.yml'
+  pull_request:
+    paths:
+      - 'middleware-c/**'
+      - '.github/workflows/middleware-c-build.yml'
+  workflow_dispatch:
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Ensure running on tag (safety guard)
-        if: startsWith(github.ref, 'refs/tags/') != true
-        run: |
-          echo "This workflow must be triggered by a tag. Current ref: $GITHUB_REF"
-          exit 1
-
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -33,11 +30,11 @@ jobs:
           go env -w GOPROXY=https://goproxy.cn,direct
           go env -w GOTOOLCHAIN=local
 
-      - name: Prepare dist
+      - name: Download deps
         working-directory: middleware-c/middleware-c
-        run: mkdir -p dist
+        run: go mod download
 
-      # 多平台本地二进制构建（与 a/b 保持风格一致，可按需扩展）
+      # 与 a/b 保持风格一致，同时覆盖常用多平台，作为 CI 构建验证
       - name: Build Windows amd64
         working-directory: middleware-c/middleware-c
         run: GOOS=windows GOARCH=amd64 go build -v -o dist/middleware-c-windows-amd64.exe
@@ -68,17 +65,13 @@ jobs:
           zip -j middleware-c-darwin-amd64.zip middleware-c-darwin-amd64 ./config.json.example || true
           zip -j middleware-c-darwin-arm64.zip middleware-c-darwin-arm64 ./config.json.example || true
 
-      - name: Create GitHub Release and Upload Assets
-        # 必须在 tag 上下文执行，否则直接 fail-fast（防止无 tag 时 action 报错迷惑）
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          files: |
+          name: middleware-c-build-artifacts
+          path: |
             middleware-c/middleware-c/dist/middleware-c-windows-amd64.zip
             middleware-c/middleware-c/dist/middleware-c-linux-amd64.zip
             middleware-c/middleware-c/dist/middleware-c-linux-arm64.zip
             middleware-c/middleware-c/dist/middleware-c-darwin-amd64.zip
             middleware-c/middleware-c/dist/middleware-c-darwin-arm64.zip
-          fail_on_unmatched_files: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
