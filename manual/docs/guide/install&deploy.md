@@ -110,11 +110,11 @@ vim docker-data/middleware-c/config.json
 
 ## 部署中间件
 
-::: tabs keys:case
+:::tabs key:deploy
 
-== a+b 方案
+== tab a+b 方案
 
-=== Linux
+### Linux
 
 - 如果`middleware-b`在 Linux 环境中，那么在 `middleware-b` 所在目录内，执行以下命令启动 `middleware-b`：
 
@@ -130,7 +130,7 @@ vim docker-data/middleware-c/config.json
 
 启动失败，则按照`FAQ`先进行排查，有任何故障请及时前往 issue 区进行反馈。
 
-=== Windows
+### Windows
 
 - 如果`middleware-a`在 Windows 环境中，直接双击启动 `middleware-a.exe`即可
 
@@ -140,17 +140,10 @@ vim docker-data/middleware-c/config.json
 
 程序启动后，先配置 `Onebot V11协议端`，配置成正向 WebSocket 服务器，监听 IP 建议为 `0.0.0.0`或 公网 IP，监听端口则按配置文件内地址定，默认为 `6700`,随后在配置文件内填写的 access-token，协议端提示连接成功即为协议端连上`middleware-a`
 
-::: warning 注意：如监听 IP 设置为 0.0.0.0，请确保已经配置了 access-token 以保证安全
-
-一般我们不推荐 Onebot V11 协议端监听 IP 设为 0.0.0.0 而不设置 `access-token`，这样的设置存在安全风险，可能造成无法挽回的后果，如有可能，请设置 `access-token` 以保障安全。
-
-我们已告知了你，不建议设置为 0.0.0.0 而不配置`access-token`，所以，若你确实存在此需求，请自行承担风险。
-
-:::
-
 配置好协议端并连接成功之后，打开 `sealdice-core` 的 `WebUI`,在账号设置内选择 `Onebot V11 正向 WS`，填入 `middleware-a` 的监听地址（默认 `ws://127.0.0.1:8081/ws`）以及在配置文件内填写的 access-token，之后点击下一步进行连接，如出现 `已连接` 字样且的确未显示异常，有正常的信息通信，则证明连接成功。
 
-== c 方案
+
+== tab c 方案
 
 启动海豹：
 
@@ -159,6 +152,14 @@ docker compose up -d
 ```
 
 打开本机 3211 端口（sealdice），打开 `sealdice-core` 的 `WebUI`,在账号设置内选择 `Onebot V11 正向 WS`，填入 `middleware-c` 的监听地址 `ws://<middleware-c-host>:8081/ws`，账号填写正确账号即可，`access-token` 处可为空（与`server_access_token` 相同），如果出现已连接，那么，证明其已连接成功。
+
+:::
+
+::: warning 注意：如监听 IP 设置为 0.0.0.0，请确保已经配置了 access-token 以保证安全
+
+一般我们不推荐 Onebot V11 协议端监听 IP 设为 0.0.0.0 而不设置 `access-token`，这样的设置存在安全风险，可能造成无法挽回的后果，如有可能，请设置 `access-token` 以保障安全。
+
+我们已告知了你，不建议设置为 0.0.0.0 而不配置`access-token`，所以，若你确实存在此需求，请自行承担风险。
 
 :::
 

@@ -6,5 +6,6 @@
         "sealdice",
         "upgrader",
         "WSURL"
-    ]
+    ],
+    "git.ignoreLimitWarning": true
 }

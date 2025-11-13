@@ -13,7 +13,7 @@ export default defineConfig({
       md.core.ruler.before('normalize', 'tabs-compat', (state) => {
         state.src = state.src
           .replace(/:::\s+tabs/g, ':::tabs')
-          .replace(/\n==\s+([^\n]+)/g, (m, t) => `\n== tab ${t}`)
+          .replace(/\n==\s+([^\n]+)/g, (m, t) => `\n== ${t.startsWith('tab ')? t : 'tab ' + t}`)
           .replace(/keys:/g, 'key:')
       })
       md.use(tabsMarkdownPlugin)
