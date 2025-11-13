@@ -6,6 +6,8 @@
 
 ### Inspired by:[@PaineNate](https://github.com/paiennate)
 
+## 这个项目干什么用的
+
 用于在 `sealdice-core` 与 OneBot 协议实现端位于不同机器时，实现文件发送功能的中间件，无需改动两端代码，用户侧无感传输。
 
 ## 获取二进制文件
