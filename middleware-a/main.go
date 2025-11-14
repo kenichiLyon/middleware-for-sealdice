@@ -7,7 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -30,6 +30,90 @@ type Config struct {
 	UpstreamUseQueryToken bool   `json:"upstream_use_query_token"`
 	ServerAccessToken     string `json:"server_access_token"`
 	UploadEndpoint        string `json:"upload_endpoint"`
+	LogLevel              string `json:"log_level"`
+	LogFile               string `json:"log_file"`
+	LogFormat             string `json:"log_format"`
+	LogConsole            bool   `json:"log_console"`
+}
+
+var (
+	levelVarA = new(slog.LevelVar)
+	loggerA   *slog.Logger
+)
+
+func initLoggerADefault() {
+	levelVarA.Set(slog.LevelInfo)
+	h := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: levelVarA})
+	loggerA = slog.New(h).With("component", "middleware-a")
+	slog.SetDefault(loggerA)
+}
+
+func initLoggerAFromConfig(cfg *Config) {
+	switch strings.ToLower(strings.TrimSpace(cfg.LogLevel)) {
+	case "debug":
+		levelVarA.Set(slog.LevelDebug)
+	case "warn":
+		levelVarA.Set(slog.LevelWarn)
+	case "error":
+		levelVarA.Set(slog.LevelError)
+	default:
+		levelVarA.Set(slog.LevelInfo)
+	}
+	out := []io.Writer{}
+	if cfg.LogConsole {
+		out = append(out, os.Stdout)
+	}
+	lf := cfg.LogFile
+	if lf == "" {
+		_ = os.MkdirAll("logs", 0o755)
+		lf = filepath.Join("logs", "middleware-a.log")
+	}
+	if lf != "" {
+		_ = os.MkdirAll(filepath.Dir(lf), 0o755)
+		if f, err := os.OpenFile(lf, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644); err == nil {
+			out = append(out, f)
+		}
+	}
+	var w io.Writer = os.Stdout
+	if len(out) > 0 {
+		w = io.MultiWriter(out...)
+	}
+	var h slog.Handler
+	if strings.ToLower(strings.TrimSpace(cfg.LogFormat)) == "text" {
+		h = slog.NewTextHandler(w, &slog.HandlerOptions{Level: levelVarA})
+	} else {
+		h = slog.NewJSONHandler(w, &slog.HandlerOptions{Level: levelVarA})
+	}
+	loggerA = slog.New(h).With("component", "middleware-a")
+	slog.SetDefault(loggerA)
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+	bytes  int
+}
+
+func (w *statusRecorder) WriteHeader(code int) { w.status = code; w.ResponseWriter.WriteHeader(code) }
+func (w *statusRecorder) Write(b []byte) (int, error) {
+	n, err := w.ResponseWriter.Write(b)
+	w.bytes += n
+	if w.status == 0 {
+		w.status = http.StatusOK
+	}
+	return n, err
+}
+
+func withHTTPLogging(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		rid := fmt.Sprintf("%x", time.Now().UnixNano())
+		rw := &statusRecorder{ResponseWriter: w}
+		loggerA.Info("http start", "rid", rid, "method", r.Method, "path", r.URL.Path, "remote", r.RemoteAddr)
+		h(rw, r)
+		dur := time.Since(start)
+		loggerA.Info("http end", "rid", rid, "status", rw.status, "bytes", rw.bytes, "duration", dur)
+	}
 }
 
 type oneBotCommand struct {
@@ -177,6 +261,18 @@ func loadConfig(path string) (*Config, error) {
 	if cfg.ListenWSPath == "" {
 		cfg.ListenWSPath = "/ws"
 	}
+	if cfg.LogLevel == "" {
+		cfg.LogLevel = "info"
+	}
+	if cfg.LogFormat == "" {
+		cfg.LogFormat = "json"
+	}
+	if cfg.LogFile == "" {
+		cfg.LogFile = filepath.Join("logs", "middleware-a.log")
+	}
+	if !cfg.LogConsole {
+		cfg.LogConsole = true
+	}
 	return &cfg, nil
 }
 
@@ -184,13 +280,16 @@ func main() {
 	var cfgPath string
 	flag.StringVar(&cfgPath, "config", "config.json", "config path")
 	flag.Parse()
+	initLoggerADefault()
 
 	cfg, err := loadConfig(cfgPath)
 	if err != nil {
-		log.Fatalf("load config: %v", err)
+		loggerA.Error("加载配置失败", "err", err)
+		os.Exit(1)
 	}
+	initLoggerAFromConfig(cfg)
 
-	http.HandleFunc(cfg.ListenWSPath, func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(cfg.ListenWSPath, withHTTPLogging(func(w http.ResponseWriter, r *http.Request) {
 		// 鉴权对接协议端的 access_token
 		if cfg.ServerAccessToken != "" {
 			auth := r.Header.Get("Authorization")
@@ -198,13 +297,14 @@ func main() {
 			if auth != expected {
 				w.WriteHeader(http.StatusUnauthorized)
 				_, _ = w.Write([]byte("unauthorized"))
+				loggerA.Warn("未授权访问", "remote", r.RemoteAddr, "path", r.URL.Path)
 				return
 			}
 		}
 		// 对接到海豹的 Onebot v11 正向 WS 连接
 		clientConn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			log.Printf("upgrade error: %v", err)
+			loggerA.Error("WebSocket 升级失败", "err", err, "remote", r.RemoteAddr)
 			return
 		}
 
@@ -224,7 +324,8 @@ func main() {
 		}
 		upstreamConn, _, err := websocket.DefaultDialer.Dial(upstreamURL, header)
 		if err != nil {
-			log.Printf("upstream dial error: %v", err)
+			loggerA.Error("连接协议端失败", "err", err, "url", upstreamURL)
+			_ = clientConn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseTryAgainLater, "upstream dial error"), timeNowPlus())
 			clientConn.Close()
 			return
 		}
@@ -234,9 +335,15 @@ func main() {
 
 		go func() {
 			defer wg.Done()
+			defer func() {
+				if rec := recover(); rec != nil {
+					loggerA.Error("发生异常 (客户端到上游)", "err", rec)
+				}
+			}()
 			for {
 				mt, msg, err := clientConn.ReadMessage()
 				if err != nil {
+					loggerA.Error("读取海豹消息失败", "err", err)
 					_ = upstreamConn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""), timeNowPlus())
 					return
 				}
@@ -245,6 +352,7 @@ func main() {
 					msg = rewritten
 				}
 				if err := upstreamConn.WriteMessage(mt, msg); err != nil {
+					loggerA.Error("写入协议端消息失败", "err", err)
 					return
 				}
 			}
@@ -252,26 +360,35 @@ func main() {
 
 		go func() {
 			defer wg.Done()
+			defer func() {
+				if rec := recover(); rec != nil {
+					loggerA.Error("发生异常 (上游到客户端)", "err", rec)
+				}
+			}()
 			for {
 				mt, msg, err := upstreamConn.ReadMessage()
 				if err != nil {
+					loggerA.Error("读取协议端消息失败", "err", err)
 					_ = clientConn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""), timeNowPlus())
 					return
 				}
 				if err := clientConn.WriteMessage(mt, msg); err != nil {
+					loggerA.Error("写入海豹消息失败", "err", err)
 					return
 				}
 			}
 		}()
 
 		wg.Wait()
+		loggerA.Info("ws closed", "remote", r.RemoteAddr, "upstream", upstreamURL)
 		clientConn.Close()
 		upstreamConn.Close()
-	})
+	}))
 
-	log.Printf("middleware-a listening on %s%s, proxying to %s", cfg.ListenHTTP, cfg.ListenWSPath, cfg.UpstreamWSURL)
+	loggerA.Info("服务启动", "http", cfg.ListenHTTP, "ws_path", cfg.ListenWSPath, "upstream", cfg.UpstreamWSURL)
 	if err := http.ListenAndServe(cfg.ListenHTTP, nil); err != nil {
-		log.Fatal(err)
+		loggerA.Error("HTTP 服务启动失败", "err", err)
+		os.Exit(1)
 	}
 }
 
@@ -572,7 +689,7 @@ func uploadViaB(fileField string, name string, cfg *Config) (uploadResult, strin
 		}
 		data, err := base64.StdEncoding.DecodeString(enc)
 		if err != nil {
-			log.Printf("decode base64 failed: %v", err)
+			loggerA.Error("Base64 解码失败", "err", err)
 			return uploadResult{}, ""
 		}
 		if name == "" {
@@ -582,11 +699,11 @@ func uploadViaB(fileField string, name string, cfg *Config) (uploadResult, strin
 		writer := multipart.NewWriter(&body)
 		part, err := writer.CreateFormFile("file", name)
 		if err != nil {
-			log.Printf("create form file failed: %v", err)
+			loggerA.Error("创建表单文件失败", "err", err)
 			return uploadResult{}, ""
 		}
 		if _, e := part.Write(data); e != nil {
-			log.Printf("write base64 data failed: %v", err)
+			loggerA.Error("写入 Base64 数据失败", "err", e)
 			return uploadResult{}, ""
 		}
 		_ = writer.WriteField("name", name)
@@ -594,19 +711,19 @@ func uploadViaB(fileField string, name string, cfg *Config) (uploadResult, strin
 
 		req, err := http.NewRequest("POST", cfg.UploadEndpoint, &body)
 		if err != nil {
-			log.Printf("new request failed: %v", err)
+			loggerA.Error("创建 HTTP 请求失败", "err", err)
 			return uploadResult{}, ""
 		}
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			log.Printf("upload HTTP error: %v", err)
+			loggerA.Error("上传 HTTP 请求失败", "err", err)
 			return uploadResult{}, ""
 		}
 		defer resp.Body.Close()
 		b, _ := io.ReadAll(resp.Body)
 		if resp.StatusCode/100 != 2 {
-			log.Printf("upload failed status=%d body=%s", resp.StatusCode, string(b))
+			loggerA.Error("上传失败", "status", resp.StatusCode, "body", string(b))
 			return uploadResult{}, ""
 		}
 		var ret struct {
@@ -615,7 +732,7 @@ func uploadViaB(fileField string, name string, cfg *Config) (uploadResult, strin
 			LocalPath string `json:"local_path"`
 		}
 		if err := json.Unmarshal(b, &ret); err != nil {
-			log.Printf("parse upload response failed: %v", err)
+			loggerA.Error("解析上传响应失败", "err", err)
 			return uploadResult{}, ""
 		}
 		if ret.Name != "" {
@@ -644,7 +761,7 @@ func uploadViaB(fileField string, name string, cfg *Config) (uploadResult, strin
 	}
 	f, err := os.Open(path)
 	if err != nil {
-		log.Printf("open file for upload failed: %v", err)
+		loggerA.Error("打开上传文件失败", "err", err)
 		return uploadResult{}, ""
 	}
 	defer f.Close()
@@ -657,11 +774,11 @@ func uploadViaB(fileField string, name string, cfg *Config) (uploadResult, strin
 	writer := multipart.NewWriter(&body)
 	part, err := writer.CreateFormFile("file", name)
 	if err != nil {
-		log.Printf("create form file failed: %v", err)
+		loggerA.Error("创建表单文件失败", "err", err)
 		return uploadResult{}, ""
 	}
 	if _, err := io.Copy(part, f); err != nil {
-		log.Printf("copy file failed: %v", err)
+		loggerA.Error("拷贝文件失败", "err", err)
 		return uploadResult{}, ""
 	}
 	_ = writer.WriteField("name", name)
@@ -669,19 +786,19 @@ func uploadViaB(fileField string, name string, cfg *Config) (uploadResult, strin
 
 	req, err := http.NewRequest("POST", cfg.UploadEndpoint, &body)
 	if err != nil {
-		log.Printf("new request failed: %v", err)
+		loggerA.Error("创建 HTTP 请求失败", "err", err)
 		return uploadResult{}, ""
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Printf("upload HTTP error: %v", err)
+		loggerA.Error("上传 HTTP 请求失败", "err", err)
 		return uploadResult{}, ""
 	}
 	defer resp.Body.Close()
 	b, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode/100 != 2 {
-		log.Printf("upload failed status=%d body=%s", resp.StatusCode, string(b))
+		loggerA.Error("上传失败", "status", resp.StatusCode, "body", string(b))
 		return uploadResult{}, ""
 	}
 	var ret struct {
@@ -690,7 +807,7 @@ func uploadViaB(fileField string, name string, cfg *Config) (uploadResult, strin
 		LocalPath string `json:"local_path"`
 	}
 	if err := json.Unmarshal(b, &ret); err != nil {
-		log.Printf("parse upload response failed: %v", err)
+		loggerA.Error("解析上传响应失败", "err", err)
 		return uploadResult{}, ""
 	}
 	if ret.Name != "" {
