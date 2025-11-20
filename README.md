@@ -10,6 +10,11 @@
 
 用于在 `sealdice-core` 与 OneBot 协议实现端位于不同机器时，实现文件发送功能的中间件，无需改动两端代码，用户侧无感传输。
 
+## 有群吗？
+
+企鹅群：1071742422
+暂无其他平台群，注意辨别
+
 ## 获取二进制文件
 
 可以通过 [action 构建](https://github.com/kenichiLyon/middleware-for-sealdice/actions) 获取，注意，**必须下载 middleware-a 和 middleware-b 并且部署才能正常工作**
