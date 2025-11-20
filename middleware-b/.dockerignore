@@ -1,0 +1,6 @@
+.git
+logs
+uploads
+*.exe
+*.log
+manual
