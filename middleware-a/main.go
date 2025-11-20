@@ -144,14 +144,9 @@ type sendGroupMsgParams struct {
 	Message string `json:"message"`
 }
 
-// cqMediaKinds are CQ types we rewrite for cross-machine sending
-var cqMediaKinds = map[string]bool{"image": true, "record": true}
-
-// rewriteCQMediaInText scans CQ codes in text and rewrites media file/path/base64 to remote URL
 func rewriteCQMediaInText(s string, cfg *Config) string {
-	re := regexp.MustCompile(`\[CQ:(image|record)([^\]]*)]`)
+	re := regexp.MustCompile(`\[CQ:(image|record|video)([^\]]*)]`)
 	return re.ReplaceAllStringFunc(s, func(seg string) string {
-		// parse key=value pairs
 		m := re.FindStringSubmatch(seg)
 		if len(m) < 3 {
 			return seg
@@ -168,7 +163,6 @@ func rewriteCQMediaInText(s string, cfg *Config) string {
 				args[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
 			}
 		}
-		// 如果有 url 且是 http(s) 开头，直接返回
 		if u, ok := args["url"]; ok {
 			if strings.HasPrefix(u, "http://") || strings.HasPrefix(u, "https://") {
 				return seg
@@ -178,11 +172,9 @@ func rewriteCQMediaInText(s string, cfg *Config) string {
 		if file == "" {
 			return seg
 		}
-		// 如果 file 是 http(s) 开头，直接返回
 		if strings.HasPrefix(file, "http://") || strings.HasPrefix(file, "https://") {
 			return seg
 		}
-		// 上传时，name 为空时，使用 file 作为 name
 		up, name := uploadViaB(file, args["name"], cfg)
 		if up.URL == "" {
 			return seg
@@ -221,7 +213,6 @@ func rewriteCQMediaInText(s string, cfg *Config) string {
 	})
 }
 
-// rewritePictureTagInText converts custom "[图:<path>]" to CQ:image with remote URL
 func rewritePictureTagInText(s string, cfg *Config) string {
 	re := regexp.MustCompile(`\[图:([^\]]+)]`)
 	return re.ReplaceAllStringFunc(s, func(seg string) string {
@@ -426,7 +417,7 @@ func rewriteIfUpload(msg []byte, cfg *Config) []byte {
 					}
 					t, _ := el["type"].(string)
 					data, _ := el["data"].(map[string]interface{})
-					if t == "image" || t == "record" {
+					if t == "image" || t == "record" || t == "video" {
 						if u, _ := data["url"].(string); strings.HasPrefix(u, "http://") || strings.HasPrefix(u, "https://") {
 							continue
 						}
@@ -490,7 +481,7 @@ func rewriteIfUpload(msg []byte, cfg *Config) []byte {
 					}
 					t, _ := el["type"].(string)
 					data, _ := el["data"].(map[string]interface{})
-					if t == "image" || t == "record" {
+					if t == "image" || t == "record" || t == "video" {
 						// prefer existing http(s) url
 						if u, _ := data["url"].(string); strings.HasPrefix(u, "http://") || strings.HasPrefix(u, "https://") {
 							continue
@@ -558,7 +549,7 @@ func rewriteIfUpload(msg []byte, cfg *Config) []byte {
 					}
 					t, _ := el["type"].(string)
 					data, _ := el["data"].(map[string]interface{})
-					if t == "image" || t == "record" {
+					if t == "image" || t == "record" || t == "video" {
 						if u, _ := data["url"].(string); strings.HasPrefix(u, "http://") || strings.HasPrefix(u, "https://") {
 							continue
 						}
