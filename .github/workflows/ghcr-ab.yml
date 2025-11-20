@@ -1,9 +1,13 @@
-name: docker
+name: middleware-ab-ghcr
 
 on:
   push:
     branches: ["main"]
     tags: ["v*"]
+    paths:
+      - "middleware-a/**"
+      - "middleware-b/**"
+      - ".github/workflows/ghcr-ab.yml"
   workflow_dispatch:
 
 jobs:
@@ -17,7 +21,7 @@ jobs:
         service: [middleware-a, middleware-b]
     env:
       REGISTRY: ghcr.io
-      IMAGE_NAME: ${{ github.repository_owner }}/${{ matrix.service }}
+      IMAGE_NAME: ${{ github.repository_owner }}/${{ github.event.repository.name }}-${{ matrix.service }}
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-qemu-action@v3
