@@ -18,7 +18,7 @@ outline: deep
 
 ### a+b 方案缺点
 
-不适用 docker 环境，需要下载 `middleware-a` 与 `middleware-b` 两个中间件程序；同时，需要 `OneBot V11` 协议端所在机器具备公网 IP 或已进行了内网穿透，另外，暂未对视频发送进行适配，未来存在适配计划。
+需要下载 `middleware-a` 与 `middleware-b` 两个中间件程序；同时，需要 `OneBot V11` 协议端所在机器具备公网 IP 或已进行了内网穿透
 
 == c 方案
 
@@ -38,7 +38,37 @@ outline: deep
 
 == a+b 方案
 
-> 从 [actions 构建](https://github.com/Sealdice/middleware-for-sealdice/actions) 下载对应平台的二进制文件压缩包，在适合的工作目录解压。
+从 [actions 构建](https://github.com/Sealdice/middleware-for-sealdice/actions) 下载对应平台的二进制文件压缩包，在适合的工作目录解压。
+
+或者，a+b 方案已经可以在 docker 环境中运行。
+
+### 部署组件 a
+
+在和 `sealdice-core` 相同的机器上执行以下命令
+
+```bash
+git clone https://github.com/kenichiLyon/middleware-for-sealdice
+cd middleware-a
+mkdir -pv docker-data/middleware-a
+cp middleware-a/config.json.example docker-data/middleware-a/config.json
+vim docker-data/middleware-a/config.json
+```
+
+**注意： `sealdice-core` 需要与`Middleware-a`共享目录`sealdice-core/data`，否则可能会导致组件 a 无法读到`sealdice-core`的媒体文件**
+
+### 部署组件 b
+
+在和 `OnebotV11协议实现端` 相同的机器上执行以下命令
+
+```bash
+git clone https://github.com/kenichiLyon/middleware-for-sealdice
+cd middleware-b
+mkdir -pv docker-data/middleware-b
+cp middleware-b/config.json.example docker-data/middleware-b/config.json
+vim docker-data/middleware-b/config.json
+```
+
+**注意： `OnebotV11协议实现端` 需要与`Middleware-b`共享目录`data/uploads`，否则可能会导致`OnebotV11协议实现端`无法读到`middleware-b`的媒体文件**
 
 == c 方案
 
@@ -142,6 +172,15 @@ vim docker-data/middleware-c/config.json
 
 配置好协议端并连接成功之后，打开 `sealdice-core` 的 `WebUI`,在账号设置内选择 `Onebot V11 正向 WS`，填入 `middleware-a` 的监听地址（默认 `ws://127.0.0.1:8081/ws`）以及在配置文件内填写的 access-token，之后点击下一步进行连接，如出现 `已连接` 字样且的确未显示异常，有正常的信息通信，则证明连接成功。
 
+## docker 方案
+
+按照前文部署好后，在 a、b 两台机上的对应工作目录上分别使用
+
+```bash
+docker compose up -d
+```
+
+启动 docker 版本的 `middleware-a` 和 `middleware-b`，日志不报错即可开始工作
 
 == tab c 方案
 
